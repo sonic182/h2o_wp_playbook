@@ -1,0 +1,34 @@
+---
+- hosts: all
+  gather_facts: no
+
+  pre_tasks:
+    - name: 'install python3'
+      raw: apt-get update && apt-get -y install python3
+
+  tasks:
+  - name: Gathering facts
+    setup:
+
+  - name: ensure h2o is at the latest version
+    yum:
+      name: h2o
+      state: latest
+
+#   - name: write the apache config file
+#     template:
+#       src: /srv/httpd.j2
+#       dest: /etc/httpd.conf
+#     notify:
+#     - restart apache
+
+  - name: ensure apache is running
+    service:
+      name: h2o
+      state: started
+
+  handlers:
+    - name: restart apache
+      service:
+        name: httpd
+        state: restarted
