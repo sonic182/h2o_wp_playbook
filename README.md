@@ -9,7 +9,8 @@
 # This does
 
 * Copy local wordpress (obtained by executing `bash get_wp.sh`)
-* Install Php dependencies
+* Install [h2o](https://h2o.examp1e.net/) provided by OS 
+* Install Php7.X and dependencies
 * Install mariadb 10
 * Install memcached
 * Install certbot
