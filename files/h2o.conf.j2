@@ -5,11 +5,12 @@ error-log: "|rotatelogs -l -f -L /var/log/h2o/error.log -p /usr/share/h2o/compre
 pid-file: /run/h2o.pid
 
 http2-reprioritize-blocking-assets: ON   # performance tuning option
+compress: ON
 
 hosts:
   "{{hostname}}":
     listen:
-      port: {{port}}
+      port: {{h2o_port}}
     paths:
       "/":
         file.dir: /var/h2o/wordpress/   # serve static files if found

@@ -75,8 +75,8 @@ Vagrant.configure("2") do |config|
     ansible.verbose = "vv"
     ansible.become = true
     ansible.become_user = 'root'
-    ansible.extra_vars = {
-      ansible_python_interpreter: '/usr/bin/python3'
-    }
+    # ansible.extra_vars = {
+    #   ansible_python_interpreter: '/usr/bin/python3'
+    # }
   end
 end

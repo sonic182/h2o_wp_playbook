@@ -8,7 +8,7 @@
     dbprivpassword: 12341234
     local_python: python3
     hostname: www.example.com
-    port: 80
+    h2o_port: 80
     php_fcgi_children: 10
   gather_facts: no
 
@@ -31,10 +31,18 @@
       src: ./wordpress/
       dest: /var/h2o/wordpress/
 
+  - name: Get wordpress Salts
+    uri:
+      url: https://api.wordpress.org/secret-key/1.1/salt/
+      return_content: yes
+    register: wp_salts
+
   - name: Copy wp-config
     template:
       src: ./files/wp-config.php.j2
       dest: /var/h2o/wordpress/wp-config.php
+    vars:
+      salt_vars: "{{wp_salts.content}}"
 
   - name: Ensure python apt present
     apt:
@@ -57,6 +65,7 @@
       - php-memcache
       - php-tidy
       - php-mysql
+      - python-mysqldb  # sometimes python3-mysqldb doesn't work...
       - python3-mysqldb
       - python3-jsmin
       - memcached
