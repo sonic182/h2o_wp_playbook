@@ -1,0 +1,25 @@
+server-name: "h2o (Debian)"
+user: debian-h2o
+access-log: "|rotatelogs -l -f -L /var/log/h2o/access.log -p /usr/share/h2o/compress_logs /var/log/h2o/access.log.%Y-%m-%d 86400"
+error-log: "|rotatelogs -l -f -L /var/log/h2o/error.log -p /usr/share/h2o/compress_logs /var/log/h2o/error.log.%Y-%m-%d 86400"
+pid-file: /run/h2o.pid
+
+http2-reprioritize-blocking-assets: ON   # performance tuning option
+
+hosts:
+  "{{hostname}}":
+    listen:
+      port: {{port}}
+    paths:
+      "/":
+        file.dir: /var/h2o/wordpress/   # serve static files if found
+        redirect:                     # if not found, internally redirect to /index.php/<path>
+          url: /index.php/
+          internal: YES
+          status: 307
+
+file.custom-handler:                  # handle PHP scripts using php-cgi (FastCGI mode)
+  extension: .php
+  fastcgi.spawn: "PHP_FCGI_CHILDREN={{php_fcgi_children}} exec /usr/bin/php-cgi"
+
+

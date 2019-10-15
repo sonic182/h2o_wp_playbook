@@ -1,34 +1,135 @@
 ---
 - hosts: all
+  vars:
+    dbname: wordpress
+    dbuser: wordpress
+    dbpassword: 12341234
+    dbprivuser: super
+    dbprivpassword: 12341234
+    local_python: python3
+    hostname: www.example.com
+    port: 80
+    php_fcgi_children: 10
   gather_facts: no
 
   pre_tasks:
-    - name: 'install python3'
-      raw: apt-get update && apt-get -y install python3
+    - name: 'install {{local_python}}'
+      raw: apt-get update && apt-get -y install "{{local_python}}"
 
   tasks:
   - name: Gathering facts
     setup:
 
-  - name: ensure h2o is at the latest version
-    yum:
-      name: h2o
-      state: latest
+  - name: Create a directory if it does not exist
+    file:
+      path: /var/h2o/wordpress/
+      state: directory
+      mode: '0755'
 
-#   - name: write the apache config file
-#     template:
-#       src: /srv/httpd.j2
-#       dest: /etc/httpd.conf
-#     notify:
-#     - restart apache
+  - name: Sync wordpress folder
+    synchronize:
+      src: ./wordpress/
+      dest: /var/h2o/wordpress/
 
-  - name: ensure apache is running
+  - name: Copy wp-config
+    template:
+      src: ./files/wp-config.php.j2
+      dest: /var/h2o/wordpress/wp-config.php
+
+  - name: Ensure python apt present
+    apt:
+      name: "{{local_python}}-apt"
+
+  - name: Add certbot ppa if ubuntu
+    apt_repository:
+      repo: ppa:certbot/certbot
+    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "18"
+
+  - name: Install dependencies
+    apt:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - certbot
+      - h2o
+      - mariadb-server
+      - php-cgi
+      - php-memcache
+      - php-tidy
+      - php-mysql
+      - python3-mysqldb
+      - python3-jsmin
+      - memcached
+
+  - name: Php 7.3 for debian 10
+    apt:
+      name: php7.3-opcache
+    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "10"
+
+  - name: Pphp 7.2 for ubuntu 18
+    apt:
+      name: php7.2-opcache
+    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "18"
+  - name: Recursively change ownership of a directory
+    file:
+      path: /var/h2o/wordpress/
+      state: directory
+      recurse: yes
+      owner: debian-h2o
+      group: debian-h2o
+      mode: '0755'
+
+  - name: Recursively change ownership of a directory again
+    file:
+      path:  "{{item}}"
+      state: directory
+      recurse: yes
+      owner: root
+      group: root
+      mode: '0755'
+    with_items:
+      - /var/h2o/wordpress/wp-admin/
+      - /var/h2o/wordpress/wp-includes/
+
+  - name: Create a new database with name "{{dbname}}"
+    mysql_db:
+      name: "{{dbname}}"
+      state: present
+
+  - name: Create database user with name "{{dbprivuser}}" with all database privileges
+    mysql_user:
+      name: "{{dbprivuser}}"
+      password: "{{dbprivpassword}}"
+      priv: '*.*:ALL'
+      state: present
+
+  - name: Create database user
+    mysql_user:
+      name: "{{dbuser}}"
+      password: "{{dbpassword}}"
+      # priv: '*.*:ALL'
+      priv: "{{dbname}}.*:ALL"
+      state: present
+
+  - name: write the h2o config file
+    template:
+      src: ./files/h2o.conf.j2
+      dest: /etc/h2o/h2o.conf
+    notify:
+    - restart h2o
+
+  - name: ensure h2o is running
     service:
       name: h2o
       state: started
 
+  - name: ensure h2o is with latest configs
+    service:
+      name: h2o
+      state: restarted
+
   handlers:
-    - name: restart apache
+    - name: restart h2o
       service:
-        name: httpd
+        name: h2o
         state: restarted
