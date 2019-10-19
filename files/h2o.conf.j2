@@ -1,4 +1,4 @@
-server-name: "h2o (Debian)"
+server-name: "someserver"
 user: debian-h2o
 access-log: "|rotatelogs -l -f -L /var/log/h2o/access.log -p /usr/share/h2o/compress_logs /var/log/h2o/access.log.%Y-%m-%d 86400"
 error-log: "|rotatelogs -l -f -L /var/log/h2o/error.log -p /usr/share/h2o/compress_logs /var/log/h2o/error.log.%Y-%m-%d 86400"
@@ -8,6 +8,27 @@ http2-reprioritize-blocking-assets: ON   # performance tuning option
 compress: ON
 
 hosts:
+  # for https configuration
+  # "{{hostname}}":
+  #   listen:
+  #     port: 443
+  #     ssl:
+  #       certificate-file: /etc/h2o/server.cert
+  #       key-file: /etc/h2o/server.key
+  #   paths:
+  #     "/":
+  #       file.dir: /var/h2o/wordpress/   # serve static files if found
+  #       redirect:                     # if not found, internally redirect to /index.php/<path>
+  #         url: /index.php/
+  #         internal: YES
+  #         status: 307
+  # "{{hostname}}":
+  #   listen:
+  #     port: 80
+  #   paths:
+  #     "/":
+  #       redirect: "https://{{hostname}}/"
+
   "{{hostname}}":
     listen:
       port: {{h2o_port}}
@@ -21,6 +42,7 @@ hosts:
 
 file.custom-handler:                  # handle PHP scripts using php-cgi (FastCGI mode)
   extension: .php
-  fastcgi.spawn: "PHP_FCGI_CHILDREN={{php_fcgi_children}} exec /usr/bin/php-cgi"
-
-
+  fastcgi.timeout.io: 90000
+  fastcgi.connect:
+    port: /run/php/{{phpversion}}-fpm.sock
+    type: unix

@@ -1,0 +1,10 @@
+---
+dbname: wordpress
+dbuser: wordpress
+dbpassword: 12341234
+dbprivuser: super
+dbprivpassword: 12341234
+local_python: python3
+hostname: www.example.com
+h2o_port: 80
+path_for_files: /var/h2o/wordpress

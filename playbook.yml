@@ -1,15 +1,7 @@
 ---
 - hosts: all
-  vars:
-    dbname: wordpress
-    dbuser: wordpress
-    dbpassword: 12341234
-    dbprivuser: super
-    dbprivpassword: 12341234
-    local_python: python3
-    hostname: www.example.com
-    h2o_port: 80
-    php_fcgi_children: 10
+  vars_files:
+    - ./vars.yml
   gather_facts: no
 
   pre_tasks:
@@ -22,14 +14,14 @@
 
   - name: Create a directory if it does not exist
     file:
-      path: /var/h2o/wordpress/
+      path: "{{path_for_files}}/"
       state: directory
       mode: '0755'
 
   - name: Sync wordpress folder
     synchronize:
       src: ./wordpress/
-      dest: /var/h2o/wordpress/
+      dest: "{{path_for_files}}/"
 
   - name: Get wordpress Salts
     uri:
@@ -40,7 +32,7 @@
   - name: Copy wp-config
     template:
       src: ./files/wp-config.php.j2
-      dest: /var/h2o/wordpress/wp-config.php
+      dest: "{{path_for_files}}/wp-config.php"
     vars:
       salt_vars: "{{wp_salts.content}}"
 
@@ -61,7 +53,8 @@
       - certbot
       - h2o
       - mariadb-server
-      - php-cgi
+      - php-curl
+      - php-fpm
       - php-memcache
       - php-tidy
       - php-mysql
@@ -70,22 +63,25 @@
       - python3-jsmin
       - memcached
 
-  - name: Php 7.3 for debian 10
-    apt:
-      name: php7.3-opcache
-    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "10"
+  - name: Get php version in var
+    shell: php -v | grep -oP 'PHP \d.\d' |awk '{print $2}'
+    register: phpversion_out
 
-  - name: Pphp 7.2 for ubuntu 18
+  - name: set var...
+    set_fact:
+      phpversion: "php{{ phpversion_out.stdout }}"
+
+  - name: Php opcache
     apt:
-      name: php7.2-opcache
-    when: ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "18"
+      name: "{{phpversion}}-opcache"
+
   - name: Recursively change ownership of a directory
     file:
-      path: /var/h2o/wordpress/
+      path: "{{path_for_files}}/"
       state: directory
       recurse: yes
-      owner: debian-h2o
-      group: debian-h2o
+      owner: www-data
+      group: www-data
       mode: '0755'
 
   - name: Recursively change ownership of a directory again
@@ -97,8 +93,14 @@
       group: root
       mode: '0755'
     with_items:
-      - /var/h2o/wordpress/wp-admin/
-      - /var/h2o/wordpress/wp-includes/
+      - "{{path_for_files}}/wp-admin"
+      - "{{path_for_files}}/wp-includes"
+
+  - name: Set www group to debian-h2o
+    user:
+      name: debian-h2o
+      groups: www-data
+      append: yes
 
   - name: Create a new database with name "{{dbname}}"
     mysql_db:
@@ -109,7 +111,7 @@
     mysql_user:
       name: "{{dbprivuser}}"
       password: "{{dbprivpassword}}"
-      priv: '*.*:ALL'
+      priv: '*.*:ALL,GRANT'
       state: present
 
   - name: Create database user
