@@ -5,8 +5,13 @@
   gather_facts: no
 
   pre_tasks:
-    - name: 'install {{local_python}}'
-      raw: apt-get update && apt-get -y install "{{local_python}}" rsync
+    - name: Install pre dependencies
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - "{{local_python}}"
+          - rsync
 
   tasks:
   - name: Gathering facts
