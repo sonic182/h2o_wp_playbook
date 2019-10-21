@@ -23,7 +23,7 @@
 
 # Python 2/3
 
-Actually by the `local_python` variable in the `playbook` you can specify the python ersion you're using for ansible in your local (host) machine, by specifying `python` or `python3`
+Actually by the `local_python` variable in the `playbook` you can specify the python version you're using for ansible in your local (host) machine, by specifying `python` or `python3`
 
 # Letsencrypt
 
